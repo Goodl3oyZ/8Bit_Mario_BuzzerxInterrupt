@@ -1,0 +1,69 @@
+#define BUZZER_PIN 21
+#define BUTTON 22
+hw_timer_t *My_timer = NULL;
+hw_timer_t *My_timer2 = NULL;
+
+// Define the notes in the 6th octave
+#define C 477
+#define C7 239
+#define E7 189
+#define G7 160
+#define F7 179
+#define D7 213
+#define Cs 451
+#define D 426
+#define Eb 402
+#define E 379
+#define F 358
+#define Fs 338
+#define G 318
+#define Gs 301
+#define A 284
+#define Bb 268
+#define B 253
+#define rest 0
+int cNote = 0;
+int note[]={C,Cs,D,Eb,E,F,Fs,G,Gs,A,Bb,B}; //octave 6th
+int mario[] = {C7,rest,rest,G,rest,rest,E,rest,rest,A,rest,B,rest,Bb,A,rest,G,E7,G7,A7,rest,F7,G7,rest,E7,rest,C7,D7,B,rest,rest}; 
+int k = 0;
+int base_speed = 500000;
+int speed[] = {base_speed,base_speed/2,base_speed/3,base_speed/4,base_speed/5};
+int s = 0;
+
+void IRAM_ATTR onTimer(){
+  if(mario[cNote]!= 0)
+    digitalWrite(BUZZER_PIN, !digitalRead(BUZZER_PIN));
+  else
+    digitalWrite(BUZZER_PIN, LOW);
+}
+
+void IRAM_ATTR onTimer2(){
+  cNote=(cNote+1)%31;
+  k=(k+1)%12;
+  timerAlarmWrite(My_timer, mario[cNote], true);  // set alarm every 1 sec
+}
+
+void IRAM_ATTR changeSpeed()
+{
+  timerAlarmWrite(My_timer2, speed[s], true);  // set alarm every 1 sec
+  s=(s+1)%5;
+}
+
+void setup() {
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(BUTTON, INPUT);
+  My_timer = timerBegin(0, 80, true);  // use tiemr 0 and set prescale to 80 so 1 tick is 1 uSec
+  My_timer2 = timerBegin(1, 80, true);
+  timerAttachInterrupt(My_timer, &onTimer, true); // point to the ISR
+  timerAttachInterrupt(My_timer2, &onTimer2, true);
+  //timerAlarmWrite(My_timer, 0, true);  // set alarm every 1 sec
+  onTimer2();
+  //timerAlarmWrite(My_timer2, speed[s], true);  // set alarm every 1 sec
+  changeSpeed();
+  attachInterrupt(BUTTON, changeSpeed, RISING); // interrupt on rising edge
+  timerAlarmEnable(My_timer2);  // enable the alarm
+  timerAlarmEnable(My_timer);
+}
+
+void loop() {
+}
